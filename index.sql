@@ -19,6 +19,12 @@ CREATE TABLE Projetos (
     FOREIGN KEY (funcionario_id) REFERENCES Funcionarios(id)
 );
 
+CREATE TABLE LogAcao (
+    id SERIAL PRIMARY KEY,
+    descricao TEXT NOT NULL,
+    data_hora TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 INSERT INTO Departamentos (nome) 
 VALUES
 ('Recursos Humanos'),
@@ -49,3 +55,23 @@ SELECT f.nome AS NomeFuncionario, d.nome AS NomeDepartamento, p.nome AS NomeProj
 FROM Funcionarios f
 JOIN Departamentos d ON f.departamento_id = d.id
 JOIN Projetos p ON f.id = p.funcionario_id;
+
+CREATE OR REPLACE FUNCTION log_funcionario_insercao()
+RETURNS TRIGGER AS $$
+BEGIN
+    INSERT INTO LogAcao (descricao) VALUES ('Novo funcionário inserido: ' || NEW.nome);
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Criação do Trigger
+CREATE TRIGGER after_insert_funcionario
+AFTER INSERT ON Funcionarios
+FOR EACH ROW
+EXECUTE FUNCTION log_funcionario_insercao();
+
+-- Verificação do Trigger
+INSERT INTO Funcionarios (nome, idade, departamento_id) VALUES
+('Eva', 29, 1);
+
+SELECT * FROM LogAcao;
